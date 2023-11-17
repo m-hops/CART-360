@@ -46,14 +46,14 @@ int z[] = {19, 21, 21, 25, 0};
 int space[] = {0, 0, 0, 0, 0};
 
 /* CREATE 4 ALPHA NUMERIC - SYMBOLS */
-int eos[] =  {0, 0, 0, 0, 0};    // " . "
-int excl[] = {0, 0, 0, 0, 0};    // " ! "
-int ques[] = {0, 0, 0, 0, 0};    // " ? " 
+int eos[] =  {0, 0, 16, 0, 0};    // " . "
+int excl[] = {0, 0, 23, 0, 0};    // " ! "
+int ques[] = {0, 1, 21, 2, 0};    // " ? " 
 int aste[] = {0, 0, 0, 0, 0};    // " * "
-int hash[] = {0, 0, 0, 0, 0};    // " # " 
-int fwsh[] = {0, 0, 0, 0, 0};    // " / " 
+int hash[] = {10, 31, 10, 31, 10};    // " # " 
+int fwsh[] = {16, 8, 4, 2, 1};    // " / " 
 
-int three[] = {0, 0, 0, 0, 0};    // " 3 "
+int three[] = {0, 17, 21, 21, 10};    // " 3 "
 int six[]   = {0, 0, 0, 0, 0};    // " 6 " 
 int zero[]  = {0, 0, 0, 0, 0};    // " 0 " 
 
@@ -98,6 +98,12 @@ void displayChar(char c)
   if (c == 'y'){for (int i = 0; i <5; i++){displayLine(y[i]);delay(delayTime);}displayLine(0);}
   if (c == 'z'){for (int i = 0; i <5; i++){displayLine(z[i]);delay(delayTime);}displayLine(0);}
   if (c == ' '){for (int i = 0; i <5; i++){displayLine(space[i]);delay(delayTime);}displayLine(0);}
+
+  //ADDED CODE//
+  if (c == '3'){for (int i = 0; i <5; i++){displayLine(three[i]);delay(delayTime);}displayLine(0);}
+  if (c == '!'){for (int i = 0; i <5; i++){displayLine(excl[i]);delay(delayTime);}displayLine(0);}
+  if (c == '?'){for (int i = 0; i <5; i++){displayLine(ques[i]);delay(delayTime);}displayLine(0);}
+  if (c == '#'){for (int i = 0; i <5; i++){displayLine(hash[i]);delay(delayTime);}displayLine(0);}
   delay(charBreak);
 }
 
@@ -109,5 +115,6 @@ void displayString(char* s)
 }
 
 void loop() {   
-  displayString("cart trac ");
+  //displayString("cart trac ");
+  displayString("3 is a #?! ");
 }
