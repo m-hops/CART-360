@@ -3,14 +3,39 @@
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
+#include <SPI.h>
+#include <Wire.h>
+#include <SFE_LSM9DS0.h>
 
 //DIGITAL PIN SETUP//
-#define BUTTON_PIN 7
-#define PIXEL_PIN 6
+#define JOY_A_BTN 1
+#define JOY_B_BTN 2
+#define BUTTON_PIN 3
+#define PIXEL_PIN 4
+
+//SMART LED COUNT//
 #define PIXEL_COUNT 60
 
 //ANALOG PIN SETUP//
+#define JOY_A_X A0
+#define JOY_A_Y A1
+#define JOY_B_X A2
+#define JOY_B_Y A3
 
+//9-DOF GLOBAL VARIABLES//
+#define PRINT_CALCULATED
+#define PRINT_SPEED 500
+#define LSM9DS0_XM  0x1D 
+#define LSM9DS0_G   0x6B 
+
+LSM9DS0 dof(MODE_I2C, LSM9DS0_G, LSM9DS0_XM);
+
+const byte INT1XM = 7; 
+const byte INT2XM = 6; 
+const byte DRDYG = 8; 
+
+bool swing = false;
+float pitch, roll;
 
 //NEOPIXEL GLOBAL VARIABLES//
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
@@ -137,6 +162,20 @@ void LEDStripSetup() {
   strip.begin();
   strip.show();
 }
+//SETUP FOR 9-DOF//
+void DOFSetup() {
+
+  pinMode(INT1XM, INPUT);
+  pinMode(INT2XM, INPUT);
+  pinMode(DRDYG, INPUT);
+
+  uint16_t status = dof.begin();
+
+  dof. setAccelScale(dof. A_SCALE_4G);
+  dof. setGyroScale(dof. G_SCALE_245DPS);
+  dof. setGyroODR(dof. G_ODR_95_BW_125);
+  dof. setAccelODR(dof. A_ODR_3125);
+}
 
 
 void setup() {
@@ -147,6 +186,7 @@ void setup() {
   //USER SETUP FUNCTIONS//
   buttonSetup();
   LEDStripSetup();
+  //DOFSetup();
 
   //DEFAULT STARTING VALUES//
   LastTime = millis();
@@ -157,8 +197,7 @@ void setup() {
 }
 void loop() {
   
-  switch(CurrentStateId)
-  {
+  switch(CurrentStateId) {
     case State_Uncharged:
       loop_Uncharged();
       break;
@@ -170,7 +209,6 @@ void loop() {
       break;
   }
 
-  
   for(int i=0; i < strip.numPixels(); ++i) {
     int r = 0;
     int g = 0;
@@ -213,6 +251,5 @@ void loop() {
     strip.setPixelColor(i, strip.Color((uint8_t)r,(uint8_t)g,(uint8_t)b));   
   }
   strip.show();
-
 }
 
