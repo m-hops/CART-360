@@ -3,7 +3,6 @@
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
-#include <Adafruit_BNO08x.h>
 
 //DIGITAL PIN SETUP//
 #define BUTTON_PIN 7
@@ -12,9 +11,6 @@
 
 //ANALOG PIN SETUP//
 
-//I2C PIN SETUP//
-#define BNO08X_SCL 12
-#define BNO08X_SDA 11
 
 //NEOPIXEL GLOBAL VARIABLES//
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
@@ -142,10 +138,11 @@ void LEDStripSetup() {
   strip.show();
 }
 
+
 void setup() {
   
-  //SET SERIAL.BEGIN TO 9600//
-  Serial.begin(9600);
+  //SET SERIAL.BEGIN TO 115200//
+  Serial.begin(115200);
 
   //USER SETUP FUNCTIONS//
   buttonSetup();
@@ -216,8 +213,6 @@ void loop() {
     strip.setPixelColor(i, strip.Color((uint8_t)r,(uint8_t)g,(uint8_t)b));   
   }
   strip.show();
-
-  //Serial.println("Works");
 
 }
 
