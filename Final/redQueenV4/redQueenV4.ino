@@ -8,21 +8,13 @@
 #include <Adafruit_BNO08x.h>
 
 //DIGITAL PIN SETUP//
-#define JOY_A_BTN 1
-#define JOY_B_BTN 2
 #define BUTTON_PIN 3
 #define PIXEL_PIN 4
 
 //SMART LED COUNT//
-#define PIXEL_COUNT 60
+#define PIXEL_COUNT 58
 
-//ANALOG PIN SETUP//
-#define JOY_A_X A0
-#define JOY_A_Y A1
-#define JOY_B_X A2
-#define JOY_B_Y A3
-
-//9-DOF GLOBAL VARIABLES//
+//DOF GLOBAL VARIABLES//
 #define BNO08X_CS 10
 #define BNO08X_INT 9
 #define BNO08X_RESET -1
@@ -84,7 +76,6 @@ StateId CurrentDOFID = DOF_Idle;
 bool lightAttackReady = false;
 bool heavyAttackReady = false;
 
-//DEFINED STATES//
 //DEFAULT STATE; SWORD HAS NO OR INCOMPLETE CHARGE//
 void loop_Uncharged(){
 
@@ -160,6 +151,7 @@ void swordStateMachine() {
       break;
   }
 }
+//STATE MACHINE FOR DOF//
 void DOFStateMachine() {
   switch(CurrentDOFID) {
     case DOF_Idle:
@@ -205,7 +197,85 @@ void DOFStateMachine() {
       break;
   }
 }
+//SETUP FOR DOF//
+void DOFSetup() {
+  if (!bno08x.begin_I2C()) {
+    Serial.println("Failed to find BNO08x chip");
+    while (1) { delay(10); }
+  }
+  Serial.println("BNO08x Found!");
 
+  DOFReports();
+  delay(10);
+}
+//CHECKS DOF EVERY ROTATION AND RETURNS SPECIFIED SENSOR VALUES//
+void DOFLoop() {
+
+  if (bno08x.wasReset()) {
+    Serial.print("sensor was reset ");
+    DOFReports();
+  }
+  
+  if (! bno08x.getSensorEvent(&sensorValue)) {
+    return;
+  }
+  
+  switch (sensorValue.sensorId) {
+    
+    case SH2_ACCELEROMETER:
+    
+      Ax = sensorValue.un.accelerometer.x;
+      Ay = sensorValue.un.accelerometer.y;
+      Az = sensorValue.un.accelerometer.z;
+      AxA = movingAverage(AxA, Ax, MovingAverageN);
+      AyA = movingAverage(AyA, Ay, MovingAverageN);
+      AzA = movingAverage(AzA, Az, MovingAverageN);
+      break;
+      
+    case SH2_GYROSCOPE_CALIBRATED:
+    
+      Gx = sensorValue.un.gyroscope.x;
+      Gy = sensorValue.un.gyroscope.y;
+      Gz = sensorValue.un.gyroscope.z;
+      GxA = movingAverage(GxA, Gx, MovingAverageN);
+      GyA = movingAverage(GyA, Gy, MovingAverageN);
+      GzA = movingAverage(GzA, Gz, MovingAverageN);
+      break;
+  }
+}
+//CALLS SPECIFIC DATA FROM THE DOF//
+void DOFReports (void) {
+    if (!bno08x.enableReport(SH2_ACCELEROMETER)) {
+    Serial.println("Could not enable accelerometer");
+  }
+  if (!bno08x.enableReport(SH2_GYROSCOPE_CALIBRATED)) {
+    Serial.println("Could not enable gyroscope");
+  }
+}
+//DEBUG VALUES FOR DOF//
+void DOFDebug() {
+    Serial.print("Accelerometer - x:");
+    printFormated(AxA);
+    Serial.print(" y:");
+    printFormated(AyA);
+    Serial.print(" z:");
+    printFormated(AzA);
+    Serial.print(" Gyro - x:");
+    printFormated(GxA);
+    Serial.print(" y:");
+    printFormated(GyA);
+    Serial.print(" z:");
+    printFormated(GzA);
+    Serial.println();
+}
+//FORMATS DOF VALUES FOR DEBUG//
+void printFormated(float value){
+  if(value < 10 && value > -10)
+    Serial.print(" ");
+  if(value >= 0)
+    Serial.print(" ");
+  Serial.print(value, 2);
+}
 //DEFINE BUTTONS PINMODE//
 void buttonSetup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -222,6 +292,7 @@ void LEDStripSetup() {
   strip.begin();
   strip.show();
 }
+//CODE TO GENERATE COLOR PULSE THROUGH SMART LEDS//
 void LEDStripGradientGenerator() {
   for(int i=0; i < strip.numPixels(); ++i) {
     int r = 0;
@@ -266,88 +337,6 @@ void LEDStripGradientGenerator() {
   }
 }
 
-//SETUP FOR 9-DOF//
-void DOFSetup() {
-  if (!bno08x.begin_I2C()) {
-    Serial.println("Failed to find BNO08x chip");
-    while (1) { delay(10); }
-  }
-  Serial.println("BNO08x Found!");
-
-  DOFReports();
-  delay(10);
-}
-//CHECKS 9 DOF EVERY ROTATION AND RETURNS SPECIFIED SENSOR VALUES//
-void DOFLoop() {
-
-  if (bno08x.wasReset()) {
-    Serial.print("sensor was reset ");
-    DOFReports();
-  }
-  
-  if (! bno08x.getSensorEvent(&sensorValue)) {
-    return;
-  }
-  
-  switch (sensorValue.sensorId) {
-    
-    case SH2_ACCELEROMETER:
-    
-      Ax = sensorValue.un.accelerometer.x;
-      Ay = sensorValue.un.accelerometer.y;
-      Az = sensorValue.un.accelerometer.z;
-      AxA = movingAverage(AxA, Ax, MovingAverageN);
-      AyA = movingAverage(AyA, Ay, MovingAverageN);
-      AzA = movingAverage(AzA, Az, MovingAverageN);
-      break;
-      
-    case SH2_GYROSCOPE_CALIBRATED:
-    
-      Gx = sensorValue.un.gyroscope.x;
-      Gy = sensorValue.un.gyroscope.y;
-      Gz = sensorValue.un.gyroscope.z;
-      GxA = movingAverage(GxA, Gx, MovingAverageN);
-      GyA = movingAverage(GyA, Gy, MovingAverageN);
-      GzA = movingAverage(GzA, Gz, MovingAverageN);
-      break;
-  }
-}
-
-//CALLS SPECIFIC DATA FROM THE 9 DOF//
-void DOFReports (void) {
-    if (!bno08x.enableReport(SH2_ACCELEROMETER)) {
-    Serial.println("Could not enable accelerometer");
-  }
-  if (!bno08x.enableReport(SH2_GYROSCOPE_CALIBRATED)) {
-    Serial.println("Could not enable gyroscope");
-  }
-}
-
-//DEBUG VALUES FOR 9DOF//
-void DOFDebug() {
-    Serial.print("Accelerometer - x:");
-    printFormated(AxA);
-    Serial.print(" y:");
-    printFormated(AyA);
-    Serial.print(" z:");
-    printFormated(AzA);
-    Serial.print(" Gyro - x:");
-    printFormated(GxA);
-    Serial.print(" y:");
-    printFormated(GyA);
-    Serial.print(" z:");
-    printFormated(GzA);
-    Serial.println();
-}
-
-//FORMATS 9DOF VALUES FOR DEBUG//
-void printFormated(float value){
-  if(value < 10 && value > -10)
-    Serial.print(" ");
-  if(value >= 0)
-    Serial.print(" ");
-  Serial.print(value, 2);
-}
 
 void setup() {
   
@@ -368,7 +357,6 @@ void setup() {
 
   delay(10);
 }
-
 void loop() {
   
   DOFDebug();
