@@ -12,7 +12,7 @@
 #define PIXEL_PIN 4
 
 //SMART LED COUNT//
-#define PIXEL_COUNT 58
+#define PIXEL_COUNT 59
 
 //DOF GLOBAL VARIABLES//
 #define BNO08X_CS 10
