@@ -7,7 +7,7 @@
 #define PRINT_CALCULATED
 #define PRINT_SPEED 500
 
-const byte INT1XM = 9;
+const byte INT1XM = 14;
 
 LSM9DS0 dof(MODE_I2C, LSM9DS0_G, LSM9DS0_XM);
 
