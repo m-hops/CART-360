@@ -3,16 +3,14 @@
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
-#include <SPI.h>
-#include <Wire.h>
 #include <Adafruit_BNO08x.h>
 
 //DIGITAL PIN SETUP//
-#define BUTTON_PIN 3
+#define BUTTON_PIN 2
 #define PIXEL_PIN 4
 
 //SMART LED COUNT//
-#define PIXEL_COUNT 59
+#define PIXEL_COUNT 58
 
 //DOF GLOBAL VARIABLES//
 #define BNO08X_CS 10
@@ -137,7 +135,7 @@ void loop_Unload(){
     }
 }
 //STATE MACHINE FOR SWORD//
-void swordStateMachine() {
+void LEDStateMachine() {
   
   switch(CurrentStateId) {
     case State_Uncharged:
@@ -361,7 +359,7 @@ void loop() {
   
   DOFDebug();
   
-  swordStateMachine();
+  LEDStateMachine();
   LEDStripGradientGenerator();
   strip.show();
   DOFStateMachine();

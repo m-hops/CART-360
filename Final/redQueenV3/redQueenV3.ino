@@ -3,8 +3,7 @@
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
-#include <SPI.h>
-#include <Wire.h>
+
 #include <Adafruit_BNO08x.h>
 
 //DIGITAL PIN SETUP//

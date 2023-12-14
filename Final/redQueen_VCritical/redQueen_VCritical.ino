@@ -2,20 +2,22 @@
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
-#include <Adafruit_BNO08x.h>
+#include <SFE_LSM9DS0.h>
+#include <Wire.h>
+#include <SPI.h>
 
 //DIGITAL PIN SETUP//
-#define BUTTON_PIN 2
-#define PIXEL_PIN 4
+#define BUTTON_PIN 21
+#define PIXEL_PIN 14
 
 //SMART LED COUNT//
-#define PIXEL_COUNT 60
+#define PIXEL_COUNT 59
 
 //NEOPIXEL GLOBAL VARIABLES//
 Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #define oldState HIGH
 #define ledChargeTimer 10
-#define ledPulseTimer 10
+#define ledPulseTimer 5
 #define ledUnloadTimer 8
 #define ChargeColor strip.Color(255,0,0)
 #define PulseColor strip.Color(255,255,0)
@@ -28,29 +30,14 @@ Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 #define PulseLength 20
 
 //DOF GLOBAL VARIABLES//
-#define BNO08X_CS 10
-#define BNO08X_INT 9
-#define BNO08X_RESET -1
+#define LSM9DS0_XM 0x1D
+#define LSM9DS0_G 0x6B
+#define PRINT_CALCULATED
+#define PRINT_SPEED 500
 
-Adafruit_BNO08x  bno08x(BNO08X_RESET);
-sh2_SensorValue_t sensorValue;
+const byte INT1XM = 25;
 
-const int MovingAverageN = 5;
-float Gx;
-float Gy;
-float Gz;
-float Ax;
-float Ay;
-float Az;
-float GxA=0;
-float GyA=0;
-float GzA=0;
-float AxA=0;
-float AyA=0;
-float AzA=0;
-float movingAverage(float avg, float v, float n){
-  return avg * (n-1)/n + v/n;
-}
+LSM9DS0 dof(MODE_I2C, LSM9DS0_G, LSM9DS0_XM);
 
 //LED PROGRAM GLOBAL VARIABLES//
 unsigned long LastTime = 0;
@@ -171,18 +158,15 @@ void LEDStateMachine() {
       break;
   }
 }
-
 void buttonSetup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 }
-
 //SETUP COMMANDS FOR LED STRIP//
 void LEDStripSetup() {
   
   strip.begin();
   strip.show();
 }
-
 //CODE TO GENERATE COLOR PULSE THROUGH SMART LEDS//
 void LEDStripGradientGenerator() {
   for(int i=0; i < strip.numPixels(); ++i) {
@@ -228,103 +212,51 @@ void LEDStripGradientGenerator() {
   }
 }
 
-//CALLS SPECIFIC DATA FROM THE DOF//
-void DOFReports (void) {
-    if (!bno08x.enableReport(SH2_ACCELEROMETER)) {
-    Serial.println("Could not enable accelerometer");
-  }
-  if (!bno08x.enableReport(SH2_GYROSCOPE_CALIBRATED)) {
-    Serial.println("Could not enable gyroscope");
-  }
+void DOFConfig() {
+  uint16_t status = dof.begin();
+
+  pinMode(INT1XM, INPUT);
+
+  dof.setAccelScale(dof.A_SCALE_4G);
 }
-
-//SETUP FOR DOF//
-void DOFSetup() {
-  //if (!bno08x.begin_I2C()) {
-    //Serial.println("Failed to find BNO08x chip");
-    //while (1) { delay(10); }
-  //}
-  Serial.println("BNO08x Found!");
-
-  DOFReports();
-  //delay(10);
-}
-
-//DEBUG VALUES FOR DOF//
-void DOFDebug() {
-    Serial.print("Accelerometer - x:");
-    printFormated(AxA);
-    Serial.print(" y:");
-    printFormated(AyA);
-    Serial.print(" z:");
-    printFormated(AzA);
-    Serial.print(" Gyro - x:");
-    printFormated(GxA);
-    Serial.print(" y:");
-    printFormated(GyA);
-    Serial.print(" z:");
-    printFormated(GzA);
-    Serial.println();
-}
-
-//FORMATS DOF VALUES FOR DEBUG//
-void printFormated(float value){
-  if(value < 10 && value > -10)
-    Serial.print(" ");
-  if(value >= 0)
-    Serial.print(" ");
-  Serial.print(value, 2);
-}
-
-//CHECKS DOF EVERY ROTATION AND RETURNS SPECIFIED SENSOR VALUES//
 void DOFLoop() {
 
-  if (bno08x.wasReset()) {
-    Serial.print("sensor was reset ");
-    DOFReports();
-  }
-  
-  if (! bno08x.getSensorEvent(&sensorValue)) {
-    return;
-  }
-  
-  switch (sensorValue.sensorId) {
-    
-    case SH2_ACCELEROMETER:
-    
-      Ax = sensorValue.un.accelerometer.x;
-      Ay = sensorValue.un.accelerometer.y;
-      Az = sensorValue.un.accelerometer.z;
-      AxA = movingAverage(AxA, Ax, MovingAverageN);
-      AyA = movingAverage(AyA, Ay, MovingAverageN);
-      AzA = movingAverage(AzA, Az, MovingAverageN);
-      break;
-      
-    case SH2_GYROSCOPE_CALIBRATED:
-    
-      Gx = sensorValue.un.gyroscope.x;
-      Gy = sensorValue.un.gyroscope.y;
-      Gz = sensorValue.un.gyroscope.z;
-      GxA = movingAverage(GxA, Gx, MovingAverageN);
-      GyA = movingAverage(GyA, Gy, MovingAverageN);
-      GzA = movingAverage(GzA, Gz, MovingAverageN);
-      break;
-  }
+  printAccel();
 }
+void printAccel() {
 
+    dof.readAccel();
+    
+    Serial.print("A: ");
+  #ifdef PRINT_CALCULATED
+    Serial.print(dof.calcAccel(dof.ax), 2);
+    Serial.print(", ");
+    Serial.print(dof.calcAccel(dof.ay), 2);
+    Serial.print(", ");
+    Serial.println(dof.calcAccel(dof.az), 2);
+  #elif defined PRINT_RAW 
+    Serial.print(dof.ax);
+    Serial.print(", ");
+    Serial.print(dof.ay);
+    Serial.print(", ");
+    Serial.println(dof.az);
+  #endif
+
+}
 //STATE MACHINE FOR DOF//
 void DOFStateMachine() {
+
   switch(CurrentDOFID) {
     case DOF_Idle:
 
-      if (AxA >= -3 && AyA > 0 && AyA < 10 && AzA < -3 && AzA >30) {
+      if (dof.calcAccel(dof.ax) >= 0) {
         //Serial.println("Going to DOF_Ready");
         CurrentDOFID = DOF_Ready;
       }
       break;
     case DOF_Ready:
 
-      if (AxA > -3 && AyA > 0 && AyA < 10 && AzA < -3 && AzA >30) {
+      if (dof.calcAccel(dof.ax) <= -0.4) {
         //Serial.println("Going to DOF_SwingDown");
         CurrentDOFID = DOF_SwingDown;
       }
@@ -335,7 +267,6 @@ void DOFStateMachine() {
       break;
     case DOF_End:
 
-      if (AyA < 0) {
         if (heavyAttackReady) {
         
         LastTime = millis();
@@ -354,7 +285,6 @@ void DOFStateMachine() {
         //Serial.println("Going to DOF_Idle");
         CurrentDOFID = DOF_Idle;
        }
-      }  
       break;
   }
 }
@@ -364,7 +294,7 @@ void setup() {
 
   buttonSetup();
   LEDStripSetup();
-  //DOFSetup();
+  DOFConfig();
 
 
   //DEFAULT STARTING VALUES//
@@ -383,5 +313,7 @@ void loop() {
   LEDStripGradientGenerator();
   strip.show();
   isButtonLow();
+  DOFLoop();
+  DOFStateMachine();
 
 }
